@@ -44,12 +44,14 @@ void switchByteData(const uint8_t *pKey , uint8_t *in, long size ,uint8_t *out ,
 
     while(startPos < size){
         int lastBytes = size - startPos;
-        offset = lastBytes >= SM4_BLOCK_SIZE ? SM4_BLOCK_SIZE:lastBytes;
+        offset = lastBytes >= SM4_CUBE_LEN ? SM4_CUBE_LEN:lastBytes;
 
         for(int i = 0 ;i < offset;i++){
             input_buf[i] = in[startPos + i];
             out_buf[i] = 0;
         }//end for i
+
+        std::cout <<"startPos = "<<       startPos << "  offset = " << offset << std::endl;
 
         if(offset < SM4_BLOCK_SIZE){
             for(int i = offset ; i< SM4_BLOCK_SIZE ; i++){
@@ -233,7 +235,7 @@ void decrypt_file(std::string filepath ,const uint8_t *key){
 
 void test6() {
     uint8_t key[16] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0xfe,0xdc,0xba,0x98,0x76,0x54,0x32,0x10};
-    const long size = 16;
+    const long size = 2;
 	uint8_t input[size] = {0x01,0x23};
 	uint8_t output[size];
 
