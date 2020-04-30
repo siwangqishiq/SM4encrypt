@@ -231,6 +231,20 @@ void decrypt_file(std::string filepath ,const uint8_t *key){
 
 }
 
+void test6() {
+    uint8_t key[16] = {0x01,0x23,0x45,0x67,0x89,0xab,0xcd,0xef,0xfe,0xdc,0xba,0x98,0x76,0x54,0x32,0x10};
+    const long size = 16;
+	uint8_t input[size] = {0x01,0x23};
+	uint8_t output[size];
+
+    encryptData(key , input , size , output);
+    printUint8Array(output , size , true);
+
+    uint8_t output2[size];
+    decryptData(key , output , size , output2);
+    printUint8Array(output2 , size , true);
+}
+
 //https://aks.jd.com/tools/sec/
 int main(int argc , char *argv[]){
     //test1();
@@ -246,6 +260,7 @@ int main(int argc , char *argv[]){
 
     //encrypt_file("gakki.jpeg", key);
     encrypt_file("gakki.jpeg", key);
+    test6();
     return 0;
 }
 
