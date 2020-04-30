@@ -9,11 +9,23 @@
 
 static const char ENCRYPT_MAGIC_VALUE[6] = {'a','a','b','c','a','a'};
 
+/**
+ *   加密文件结构
+ * 
+ *  |magic_number|version(32)|
+ *   header-length(32) | origin file name length (header-length) | origin file name|
+ *   origin file size| custom field length | custom field<json> |
+ *   ------------------------ file content ----------------------
+ * 
+ * */
 class Sm4Encrypt{
 public:
     static const uint8_t  BLOCK_SIZE = SM4_BLOCK_SIZE;
 
+    static const int VERSION1 = 1;
+
     Sm4Encrypt(std::string _path):filePath(_path){
+        version = VERSION1
         parseFile();
     }
 
@@ -21,6 +33,8 @@ public:
 
     static uint32_t getFileSize(std::string filepath);//获取文件大小
 
+    static std::vector<uint8_t> intToBytes(int32_t paramInt);//
+  
     int encryptFile(uint8_t *pkey , std::string encryptFilePath);//加密文件
 
     void readFile(std::string filename);//读取文件

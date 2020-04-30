@@ -37,6 +37,8 @@ int Sm4Encrypt::encryptFile(uint8_t *pkey , std::string encryptFilePath){
 void Sm4Encrypt::writeEncryptFileHeader(std::vector<uint8_t> *pHeadData){
     //1.写入magic number
     writeMagicNumber(pHeadData);
+    //写入版本号
+    writeVersion(pHeadData);
 }
 
 void Sm4Encrypt::writeMagicNumber(std::vector<uint8_t> *header){
@@ -47,6 +49,10 @@ void Sm4Encrypt::writeMagicNumber(std::vector<uint8_t> *header){
     for(int i = 0 ; i< len ;i++){
         header->push_back(ENCRYPT_MAGIC_VALUE[i]);
     }//end for i
+}
+
+void Sm4Encrypt::writeVersion(std::vector<uint8_t> *header){
+    
 }
 
 void Sm4Encrypt::readFile(std::string filename){
@@ -60,7 +66,15 @@ void Sm4Encrypt::readFile(std::string filename){
     printUint8Array(buf ,size , true);
 }
 
-uint32_t Sm4Encrypt::getFileSize(std::string filepath){
+static std::vector<uint8_t> intToBytes(int32_t paramInt){
+    std::vector<uint8_t> arrayOfByte(4);
+    for(int i = 0 ; i < 4; i++){
+        arrayOfByte[3 - i] = (paramInt >> (i * 8));
+    }//end for i
+    return arrayOfByte;
+}
+
+static uint32_t Sm4Encrypt::getFileSize(std::string filepath){
     std::ifstream file(filepath.c_str());
     file.seekg(0,std::ios::end);
     std::streampos ps = file.tellg();
