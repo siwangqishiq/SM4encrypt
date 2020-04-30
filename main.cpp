@@ -3,6 +3,7 @@
 #include <string>
 #include <stdio.h>
 #include <fstream>
+#include <cstring>
 #include "sm4.h"
 
 long get_file_size(std::string filepath);
@@ -199,8 +200,7 @@ long get_file_size(std::string filepath){
 
 void encrypt_file(std::string filepath ,const uint8_t *key) {
     //std::fstream file(filepath.c_str(),std::ios::in | std::ios::binary);
-    std::string encrypt_file_name = filepath + "_encrypt";
-    std::cout << encrypt_file_name << std::endl;
+    
 
     const long file_size = get_file_size(filepath);
     std::cout << "file size = " << file_size << std::endl;
@@ -213,8 +213,18 @@ void encrypt_file(std::string filepath ,const uint8_t *key) {
     file.read(data , file_size);
     file.close();
 
-    std::cout << data << std::endl;
-    //printUint8Array(data , file_size);
+    //std::cout << data << std::endl;
+    //printUint8Array((uint8_t *)data , file_size);
+
+    std::string encrypt_file_name = "copy.jpeg";
+    std::cout << encrypt_file_name << std::endl;
+
+    std::ofstream out_file;
+    out_file.open(encrypt_file_name.c_str(), std::ios::binary);
+    //char d[2] = {0x00};
+    out_file.write(data , file_size);
+    //out_file << data;
+    out_file.close();
 }
 
 void decrypt_file(std::string filepath ,const uint8_t *key){
@@ -234,6 +244,7 @@ int main(int argc , char *argv[]){
 
     // printf("%s \n", s_str);
 
+    //encrypt_file("gakki.jpeg", key);
     encrypt_file("gakki.jpeg", key);
     return 0;
 }
