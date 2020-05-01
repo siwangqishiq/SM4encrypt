@@ -35,13 +35,56 @@ int Sm4Encrypt::encryptFile(uint8_t *pkey , std::string encryptFilePath){
     return 1;
 }
 
+static void writeIntToByteVector(std::vector<uint8_t> *buf,uint32_t value){
+    if(buf == nullptr)
+        return;
+
+    const long size = 4;
+    uint8_t byteBuf[size];
+    intToUint8(value , byteBuf);
+    for(int i= 0 ;i < size;i++){
+        buf->push_back(byteBuf[i]);
+    }//end for i
+}
+
 //写入加密文件的文件头
-void Sm4Encrypt::writeEncryptFileHeader(std::vector<uint8_t> *pHeadData){
+void Sm4Encrypt::writeEncryptFileHeader(std::vector<uint8_t> *pHeaderData){
     //1.写入magic number
-    writeMagicNumber(pHeadData);
+    writeMagicNumber(pHeaderData);
+
     //写入版本号
-    std::cout << "write header code" << std::endl;
-    writeVersion(pHeadData);
+    writeVersion(pHeaderData);
+
+    //写入head长度 先占位 后面修改
+    int zoneHeadLengthPos = pHeaderData->size();
+    writeIntToByteVector(pHeaderData , 0);
+
+    //写入文件名信息到头中  文件原始名长度 ＋ 原始名
+    writeFileName(pHeaderData);
+
+    //重新写入正确的head长度
+    int headRealSize = pHeaderData->size();
+    //std::cout << "zoneHeadLengthPos : " << zoneHeadLengthPos << std::endl;
+    uint8_t headLenArray[4];
+    intToUint8((uint32_t)headRealSize , headLenArray);
+    (*pHeaderData)[zoneHeadLengthPos] = headLenArray[0];
+    (*pHeaderData)[zoneHeadLengthPos + 1] = headLenArray[1];
+    (*pHeaderData)[zoneHeadLengthPos + 2] = headLenArray[2];
+    (*pHeaderData)[zoneHeadLengthPos + 3] = headLenArray[3];
+}
+
+void Sm4Encrypt::writeFileName(std::vector<uint8_t> *pHeaderData){
+    uint32_t len = filename.size();
+     //写入原始文件名长度
+    writeIntToByteVector(pHeaderData , len);
+    //写入文件名称
+    const char *pFileName = filename.c_str();
+
+    for(int i = 0 ; i < len ;i++){
+        pHeaderData->push_back((uint8_t)pFileName[i]);
+        //std::cout << pFileName[i];
+    }//end for i
+    // std::cout << std::endl;
 }
 
 void Sm4Encrypt::writeMagicNumber(std::vector<uint8_t> *header){
@@ -58,12 +101,7 @@ void Sm4Encrypt::writeVersion(std::vector<uint8_t> *header){
     if(header == nullptr)
         return;
     
-    const int perBytes = 4;
-    uint8_t versionBuf[perBytes];
-    intToUint8(this->version , versionBuf);
-    for(int i= 0 ;i < perBytes;i++){
-        header->push_back(versionBuf[i]);
-    }//end for i
+    writeIntToByteVector(header , this->version);
 }
 
 void Sm4Encrypt::readFile(std::string filename){
@@ -76,6 +114,28 @@ void Sm4Encrypt::readFile(std::string filename){
     file.close();
 
     printUint8Array((uint8_t *)buf ,size , true);
+
+    parseFileHeader(filename);
+}
+
+void Sm4Encrypt::parseFileHeader(std::string filename){
+    std::ifstream file;
+    file.open(filename.c_str(), std::ios::binary);
+
+    //read magic number 
+    const long magicNumberSize = sizeof(ENCRYPT_MAGIC_VALUE) / sizeof(ENCRYPT_MAGIC_VALUE[0]);
+    uint8_t magicNumberBuf[magicNumberSize];
+    file.read((char *)magicNumberBuf , magicNumberSize);
+    std::string magicNumber = std::string((char *)magicNumberBuf);
+    std::cout << "magic number : " << magicNumber << std::endl;
+
+    //read version
+    uint8_t versionBuf[4];
+    file.read((char *)versionBuf , 4);
+    uint32_t version = uint8ToInt(versionBuf , 0);
+    std::cout << "version :" << version << std::endl;
+
+    file.close();
 }
 
 static uint32_t getFileSize(std::string filepath){

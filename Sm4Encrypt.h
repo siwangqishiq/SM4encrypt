@@ -11,6 +11,8 @@ static const char ENCRYPT_MAGIC_VALUE[6] = {'a','a','b','c','a','a'};
 
 static uint32_t getFileSize(std::string filepath);//获取文件大小
 
+static void writeIntToByteVector(std::vector<uint8_t> *buf,uint32_t value);//
+
 static uint32_t uint8ToInt(const uint8_t *b, uint32_t n)
 {
     return ((uint32_t)b[4 * n] << 24) |
@@ -27,11 +29,34 @@ static void intToUint8(uint32_t v, uint8_t *b)
     b[3] = (uint8_t)(v);
 }
 
+static void stringReplace(std::string &strBig, const std::string &strsrc, 
+        const std::string &strdst) {
+    std::string::size_type pos = 0;
+    std::string::size_type srclen = strsrc.size();
+    std::string::size_type dstlen = strdst.size();
+
+    while( (pos=strBig.find(strsrc, pos)) != std::string::npos) {
+        strBig.replace( pos, srclen, strdst );
+        pos += dstlen;
+    }
+}
+
+static std::string getPathOrURLShortName(std::string strFullName){
+    if (strFullName.empty()){
+        return "";
+    }
+    stringReplace(strFullName, "/", "\\");
+    std::string::size_type iPos = strFullName.find_last_of('\\') + 1;
+    return strFullName.substr(iPos, strFullName.length() - iPos);
+}
+
 /**
  *   加密文件结构
  * 
  *  |magic_number|version(32)|
- *   header-length(32) | origin file name length (header-length) | origin file name|
+ *   header-length(32) | 
+ *   origin file name length (32) |
+ *   origin file name (origin file name length)|
  *   origin file size| custom field length | custom field<json> |
  *   ------------------------ file content ----------------------
  * 
@@ -40,10 +65,11 @@ class Sm4Encrypt{
 public:
     static const uint8_t  BLOCK_SIZE = SM4_BLOCK_SIZE;
 
-    static const uint32_t VERSION1 = 16;
+    static const uint32_t VERSION1 = 15;
 
     Sm4Encrypt(std::string _path):filePath(_path){
         version = VERSION1;
+        filename = getPathOrURLShortName(filePath);
         parseFile();
     }
 
@@ -57,6 +83,7 @@ public:
     }
     
 private:
+    std::string filename;
     std::string filePath;
     uint32_t fileSize;
 
@@ -71,6 +98,10 @@ private:
     void writeMagicNumber(std::vector<uint8_t> *pHeaderData);
 
     void writeVersion(std::vector<uint8_t> *pHeaderData);
+
+    void writeFileName(std::vector<uint8_t> *pHeaderData);
+
+    void parseFileHeader(std::string filename);
 };
 
 void static printUint8(uint8_t c){
