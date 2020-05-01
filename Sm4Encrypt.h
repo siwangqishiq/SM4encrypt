@@ -9,6 +9,24 @@
 
 static const char ENCRYPT_MAGIC_VALUE[6] = {'a','a','b','c','a','a'};
 
+static uint32_t getFileSize(std::string filepath);//获取文件大小
+
+static uint32_t uint8ToInt(const uint8_t *b, uint32_t n)
+{
+    return ((uint32_t)b[4 * n] << 24) |
+           ((uint32_t)b[4 * n + 1] << 16) |
+           ((uint32_t)b[4 * n + 2] << 8) |
+           ((uint32_t)b[4 * n + 3]);
+}
+
+static void intToUint8(uint32_t v, uint8_t *b)
+{
+    b[0] = (uint8_t)(v >> 24);
+    b[1] = (uint8_t)(v >> 16);
+    b[2] = (uint8_t)(v >> 8);
+    b[3] = (uint8_t)(v);
+}
+
 /**
  *   加密文件结构
  * 
@@ -22,18 +40,14 @@ class Sm4Encrypt{
 public:
     static const uint8_t  BLOCK_SIZE = SM4_BLOCK_SIZE;
 
-    static const int VERSION1 = 1;
+    static const uint32_t VERSION1 = 16;
 
     Sm4Encrypt(std::string _path):filePath(_path){
-        version = VERSION1
+        version = VERSION1;
         parseFile();
     }
 
     void showFileInfo();
-
-    static uint32_t getFileSize(std::string filepath);//获取文件大小
-
-    static std::vector<uint8_t> intToBytes(int32_t paramInt);//
   
     int encryptFile(uint8_t *pkey , std::string encryptFilePath);//加密文件
 
@@ -48,11 +62,15 @@ private:
 
     uint8_t encryptKey[BLOCK_SIZE];
 
+    uint32_t version;//协议版本 
+
     void parseFile();
 
     void writeEncryptFileHeader(std::vector<uint8_t> *pHeadData);
     
     void writeMagicNumber(std::vector<uint8_t> *pHeaderData);
+
+    void writeVersion(std::vector<uint8_t> *pHeaderData);
 };
 
 void static printUint8(uint8_t c){
