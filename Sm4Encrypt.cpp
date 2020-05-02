@@ -18,6 +18,7 @@ int Sm4Encrypt::encryptFile(uint8_t *pkey , std::string encryptFilePath){
     if(pkey == nullptr){
         pkey = encryptKey;
     }
+    originFileSize = getFileSize(filePath);
 
     std::ifstream inputFile(filePath.c_str(),std::ios::binary);
     inputFile.close();
@@ -61,6 +62,20 @@ void Sm4Encrypt::writeEncryptFileHeader(std::vector<uint8_t> *pHeaderData){
 
     //写入文件名信息到头中  文件原始名长度 ＋ 原始名
     writeFileName(pHeaderData);
+
+    //写入原始文件长度
+    writeIntToByteVector(pHeaderData , this->originFileSize);
+
+    //写入用户自定义json数据
+    std::string jsonStr = genCustomJsonData();
+    std::cout << "custom json : " << jsonStr << std::endl;
+    uint32_t jsonStrLength = jsonStr.size();
+    writeIntToByteVector(pHeaderData , jsonStrLength);// 写入长度
+    //写入内容
+    const char *cJsonStr = jsonStr.c_str();
+    for(int i= 0 ; i < jsonStrLength;i++){
+        pHeaderData->push_back((uint8_t)cJsonStr[i]);
+    }//end for i
 
     //重新写入正确的head长度
     int headRealSize = pHeaderData->size();
@@ -118,7 +133,20 @@ void Sm4Encrypt::readFile(std::string filename){
     parseFileHeader(filename);
 }
 
+//从文件流中读取出一个32位整型数据
+uint32_t Sm4Encrypt::readUint32FromFile(std::ifstream &file){
+    const int byteCount = 4;
+    uint8_t buf[byteCount];
+
+    file.read((char *)buf , 4);
+    uint32_t result = uint8ToInt(buf , 0);
+
+    return result;
+}
+
 void Sm4Encrypt::parseFileHeader(std::string filename){
+    std::cout << "======== " << filename << " info ===========" << std::endl;
+    
     std::ifstream file;
     file.open(filename.c_str(), std::ios::binary);
 
@@ -130,12 +158,53 @@ void Sm4Encrypt::parseFileHeader(std::string filename){
     std::cout << "magic number : " << magicNumber << std::endl;
 
     //read version
-    uint8_t versionBuf[4];
-    file.read((char *)versionBuf , 4);
-    uint32_t version = uint8ToInt(versionBuf , 0);
+    uint32_t version = readUint32FromFile(file);
     std::cout << "version :" << version << std::endl;
 
+    //read head length
+    uint32_t headLen = readUint32FromFile(file);
+    std::cout << "headLen :" << headLen << std::endl;
+
+    //read origin file name length
+    const uint32_t originFileNameLen = readUint32FromFile(file);
+    std::cout << "origin file name length :" << originFileNameLen << std::endl;
+
+    // read origin file name content
+    uint8_t originFileNameBuf[originFileNameLen + 1];
+    originFileNameBuf[originFileNameLen]='\0';
+    file.read((char *)originFileNameBuf , originFileNameLen);
+    std::string originFileName = std::string((const char *)originFileNameBuf);
+    std::cout << "origin file name :" << originFileName << std::endl;
+
+    //read origin file length
+    uint32_t originFileLength = readUint32FromFile(file);
+    std::cout << "origin file length :" << originFileLength << std::endl;
+
+    //read custom json string
+    uint32_t customJsonLength = readUint32FromFile(file);
+    std::cout << "customJsonLenght : " << customJsonLength << std::endl;
+    if(customJsonLength > 0){
+        uint8_t jsonStr[customJsonLength + 1];
+        jsonStr[customJsonLength] = '\0';
+        file.read((char *)jsonStr , customJsonLength);
+        std::string jsonString = std::string((const char *)jsonStr);
+
+        //call back for users
+        handleCusonJsonData(jsonString);
+        //std::cout << jsonString << std::endl;
+    }
+
     file.close();
+}
+
+// 用户自定义数据 json格式返回
+std::string Sm4Encrypt::genCustomJsonData(){
+    return "{}";
+}
+
+//读取加密文件中 用户自定义的json字符串 完成相应业务逻辑
+void Sm4Encrypt::handleCusonJsonData(std::string &jsonStr){
+    std::cout << "custom json : " << jsonStr << std::endl;
 }
 
 static uint32_t getFileSize(std::string filepath){

@@ -7,7 +7,7 @@
 #include <vector>
 #include <stdio.h>
 
-static const char ENCRYPT_MAGIC_VALUE[6] = {'a','a','b','c','a','a'};
+static const char ENCRYPT_MAGIC_VALUE[6] = {'x','i','n','l','a','n'};
 
 static uint32_t getFileSize(std::string filepath);//获取文件大小
 
@@ -57,7 +57,8 @@ static std::string getPathOrURLShortName(std::string strFullName){
  *   header-length(32) | 
  *   origin file name length (32) |
  *   origin file name (origin file name length)|
- *   origin file size| custom field length | custom field<json> |
+ *   origin file size (32)| 
+ *   custom field length | custom field<json > |
  *   ------------------------ file content ----------------------
  * 
  * */
@@ -65,7 +66,7 @@ class Sm4Encrypt{
 public:
     static const uint8_t  BLOCK_SIZE = SM4_BLOCK_SIZE;
 
-    static const uint32_t VERSION1 = 15;
+    static const uint32_t VERSION1 = 1;
 
     Sm4Encrypt(std::string _path):filePath(_path){
         version = VERSION1;
@@ -76,12 +77,16 @@ public:
     void showFileInfo();
   
     int encryptFile(uint8_t *pkey , std::string encryptFilePath);//加密文件
-
+    
     void readFile(std::string filename);//读取文件
 
     ~Sm4Encrypt(){
     }
-    
+
+    // 用户自定义数据 json格式返回
+    virtual std::string genCustomJsonData();
+
+    virtual void handleCusonJsonData(std::string &jsonStr);
 private:
     std::string filename;
     std::string filePath;
@@ -90,6 +95,8 @@ private:
     uint8_t encryptKey[BLOCK_SIZE];
 
     uint32_t version;//协议版本 
+
+    uint32_t originFileSize;
 
     void parseFile();
 
@@ -102,6 +109,8 @@ private:
     void writeFileName(std::vector<uint8_t> *pHeaderData);
 
     void parseFileHeader(std::string filename);
+
+    uint32_t readUint32FromFile(std::ifstream &file); //read a int from file stream
 };
 
 void static printUint8(uint8_t c){
