@@ -50,6 +50,20 @@ static std::string getPathOrURLShortName(std::string strFullName){
     return strFullName.substr(iPos, strFullName.length() - iPos);
 }
 
+static void printUint8(uint8_t c){
+    printf("%02x" , c);
+}
+
+static void printUint8Array(uint8_t *data , int size = 16 , bool hasSpace = true){
+	for(int i=0;i < size ;i++){
+        printUint8(data[i]);
+        if(hasSpace){
+            std::cout << " ";
+        }
+    }//end for i
+    std::cout << std::endl;
+}
+
 /**
  *   加密文件结构
  * 
@@ -62,31 +76,54 @@ static std::string getPathOrURLShortName(std::string strFullName){
  *   ------------------------ file content ----------------------
  * 
  * */
+
+struct EncryptFileHeadInfo{
+    std::string magicNumber;
+    uint32_t version;
+    uint32_t headLength;
+    std::string originFileName;
+    uint32_t originFileSize;
+    std::string customJsonString;
+};
+
 class Sm4Encrypt{
 public:
     static const uint8_t  BLOCK_SIZE = SM4_BLOCK_SIZE;
 
     static const uint32_t VERSION1 = 1;
 
+    static const int ENCRYPT_CODE_ERROR = -1;//加密文件错误
+    static const int ENCRYPT_CODE_OK = 1;//文件加密成功
+
     Sm4Encrypt(std::string _path):filePath(_path){
         version = VERSION1;
-        filename = getPathOrURLShortName(filePath);
-        parseFile();
+        initWithFile(filePath);
+    }
+
+    Sm4Encrypt(){
+        version = VERSION1;
     }
 
     void showFileInfo();
   
-    int encryptFile(uint8_t *pkey , std::string encryptFilePath);//加密文件
-    
-    void readFile(std::string filename);//读取文件
+    int encryptFile(uint8_t *pkey , std::string path ,std::string encryptFilePath);//加密文件
 
-    ~Sm4Encrypt(){
-    }
+    int decryptFile(uint8_t *pkey , std::string &decryptFilePath); //解密文件
+
+    bool checkFileIsEncrypted(std::string checkFilePath);//检测文件是否已经被加密
+
+    void readEncryptFile(std::string filename);//读取文件
 
     // 用户自定义数据 json格式返回
     virtual std::string genCustomJsonData();
 
-    virtual void handleCusonJsonData(std::string &jsonStr);
+    virtual void handleCustomJsonData(std::string jsonStr);
+
+    //读取加密文件头信息
+    void parseFileHeader(std::string filename , EncryptFileHeadInfo &headInfo);
+
+    ~Sm4Encrypt(){
+    }
 private:
     std::string filename;
     std::string filePath;
@@ -97,34 +134,27 @@ private:
     uint32_t version;//协议版本 
 
     uint32_t originFileSize;
+    std::string originFileName;
+
+    void initWithFile(std::string filePath) {
+        filename = getPathOrURLShortName(filePath);
+        parseFile();
+    }
 
     void parseFile();
 
-    void writeEncryptFileHeader(std::vector<uint8_t> *pHeadData);
+    void writeEncryptFileHeader(std::vector<uint8_t> *pHeadData,std::string &originFileName);
     
     void writeMagicNumber(std::vector<uint8_t> *pHeaderData);
 
     void writeVersion(std::vector<uint8_t> *pHeaderData);
 
-    void writeFileName(std::vector<uint8_t> *pHeaderData);
+    void writeFileName(std::vector<uint8_t> *pHeaderData , std::string &name);
 
-    void parseFileHeader(std::string filename);
+    uint32_t writeEncryptFileContent(uint8_t *key ,std::ifstream &input, 
+        std::ofstream &stream , uint32_t size);//写入加密后的文件 返回加密字节数
 
     uint32_t readUint32FromFile(std::ifstream &file); //read a int from file stream
 };
-
-void static printUint8(uint8_t c){
-    printf("%02x" , c);
-}
-
-void static printUint8Array(uint8_t *data , int size = 16 , bool hasSpace = true){
-	for(int i=0;i < size ;i++){
-        printUint8(data[i]);
-        if(hasSpace){
-            std::cout << " ";
-        }
-    }//end for i
-    std::cout << std::endl;
-}
 
 #endif
