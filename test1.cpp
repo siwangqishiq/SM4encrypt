@@ -35,12 +35,14 @@ int main(int argc , char *argv[]){
 
     EncryptFileHeadInfo info;
     instance.parseFileHeader("res/en_test" , info);
-    std::cout << "head info :" << std::endl;
-    std::cout << "magic number :" << info.magicNumber << std::endl;
-    std::cout << "headLength :" << info.headLength << std::endl;
-    std::cout << "originFileName :" << info.originFileName << std::endl;
-    std::cout << "originFileSize :" << info.originFileSize << std::endl;
-    std::cout << "customJsonString :" << info.customJsonString << std::endl;
+    // std::cout << "head info :" << std::endl;
+    // std::cout << "magic number :" << info.magicNumber << std::endl;
+    // std::cout << "headLength :" << info.headLength << std::endl;
+    // std::cout << "originFileName :" << info.originFileName << std::endl;
+    // std::cout << "originFileSize :" << info.originFileSize << std::endl;
+    // std::cout << "customJsonString :" << info.customJsonString << std::endl;
+
+    instance.decryptFile(key , "res/en_test");
 
     // bool isEncrypt = encrypt.checkFileIsEncrypted("res/gakki.jpeg");
     // std::cout << isEncrypt << std::endl;

@@ -76,7 +76,6 @@ static void printUint8Array(uint8_t *data , int size = 16 , bool hasSpace = true
  *   ------------------------ file content ----------------------
  * 
  * */
-
 struct EncryptFileHeadInfo{
     std::string magicNumber;
     uint32_t version;
@@ -92,8 +91,11 @@ public:
 
     static const uint32_t VERSION1 = 1;
 
-    static const int ENCRYPT_CODE_ERROR = -1;//加密文件错误
-    static const int ENCRYPT_CODE_OK = 1;//文件加密成功
+    static const int ENCRYPT_ERROR = -1;//加密文件错误
+    static const int ENCRYPT_SUCCESS = 1;//文件加密成功
+
+    static const int DECRYPT_ERROR = -1;
+    static const int DECRYPT_SUCCESS = 1;//
 
     Sm4Encrypt(std::string _path):filePath(_path){
         version = VERSION1;
@@ -108,7 +110,7 @@ public:
   
     int encryptFile(uint8_t *pkey , std::string path ,std::string encryptFilePath);//加密文件
 
-    int decryptFile(uint8_t *pkey , std::string &decryptFilePath); //解密文件
+    int decryptFile(uint8_t *pkey , std::string decryptFilePath , std::string outFilePath = ""); //解密文件
 
     bool checkFileIsEncrypted(std::string checkFilePath);//检测文件是否已经被加密
 
@@ -121,6 +123,8 @@ public:
 
     //读取加密文件头信息
     void parseFileHeader(std::string filename , EncryptFileHeadInfo &headInfo);
+
+    void parseFileHeaderStream(std::ifstream &stream, EncryptFileHeadInfo &headInfo);
 
     ~Sm4Encrypt(){
     }
@@ -153,6 +157,9 @@ private:
 
     uint32_t writeEncryptFileContent(uint8_t *key ,std::ifstream &input, 
         std::ofstream &stream , uint32_t size);//写入加密后的文件 返回加密字节数
+
+    uint32_t writeDecryptFileContent(uint8_t *key , std::ifstream &input , std::ofstream &output ,
+        uint32_t size);
 
     uint32_t readUint32FromFile(std::ifstream &file); //read a int from file stream
 };

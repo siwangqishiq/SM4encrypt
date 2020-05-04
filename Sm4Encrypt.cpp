@@ -16,7 +16,7 @@ void Sm4Encrypt::parseFile(){
 
 int Sm4Encrypt::encryptFile(uint8_t *pkey ,std::string path, std::string encryptFilePath){
     if(pkey == nullptr){
-        pkey = encryptKey;
+        return ENCRYPT_ERROR;
     }
     originFileSize = getFileSize(path);
 
@@ -40,7 +40,7 @@ int Sm4Encrypt::encryptFile(uint8_t *pkey ,std::string path, std::string encrypt
 
     std::cout << "encrypt file handle cout : " << handleCount << std::endl;
 
-    return ENCRYPT_CODE_OK;
+    return ENCRYPT_SUCCESS;
 }
 
 static void writeIntToByteVector(std::vector<uint8_t> *buf,uint32_t value){
@@ -136,7 +136,6 @@ void Sm4Encrypt::readEncryptFile(std::string filename){
     char buf[size];
     std::ifstream file(filename.c_str() , std::ios::binary);
     file.read((char *)buf , size);
-
     file.close();
 
     printUint8Array((uint8_t *)buf ,size , true);
@@ -161,57 +160,7 @@ void Sm4Encrypt::parseFileHeader(std::string filename , EncryptFileHeadInfo &hea
     
     std::ifstream file;
     file.open(filename.c_str(), std::ios::binary);
-
-    //read magic number 
-    const long magicNumberSize = sizeof(ENCRYPT_MAGIC_VALUE) / sizeof(ENCRYPT_MAGIC_VALUE[0]);
-    uint8_t magicNumberBuf[magicNumberSize];
-    file.read((char *)magicNumberBuf , magicNumberSize);
-    std::string magicNumber = std::string((char *)magicNumberBuf);
-    header.magicNumber = magicNumber;
-    std::cout << "magic number : " << magicNumber << std::endl;
-
-    //read version
-    uint32_t version = readUint32FromFile(file);
-    header.version = version;
-    std::cout << "version :" << version << std::endl;
-
-    //read head length
-    uint32_t headLen = readUint32FromFile(file);
-    header.headLength = headLen;
-    std::cout << "headLen :" << headLen << std::endl;
-
-    //read origin file name length
-    const uint32_t originFileNameLen = readUint32FromFile(file);
-    std::cout << "origin file name length :" << originFileNameLen << std::endl;
-
-    // read origin file name content
-    uint8_t originFileNameBuf[originFileNameLen + 1];
-    originFileNameBuf[originFileNameLen]='\0';
-    file.read((char *)originFileNameBuf , originFileNameLen);
-    std::string originFileName = std::string((const char *)originFileNameBuf);
-    header.originFileName = originFileName;
-    std::cout << "origin file name :" << originFileName << std::endl;
-
-    //read origin file length
-    uint32_t originFileLength = readUint32FromFile(file);
-    header.originFileSize = originFileLength;
-    std::cout << "origin file length :" << originFileLength << std::endl;
-
-    //read custom json string
-    uint32_t customJsonLength = readUint32FromFile(file);
-    std::cout << "customJsonLenght : " << customJsonLength << std::endl;
-    if(customJsonLength > 0){
-        uint8_t jsonStr[customJsonLength + 1];
-        jsonStr[customJsonLength] = '\0';
-        file.read((char *)jsonStr , customJsonLength);
-        std::string jsonString = std::string((const char *)jsonStr);
-        header.customJsonString = jsonString;
-
-        //call back for users
-        handleCustomJsonData(jsonString);
-        //std::cout << jsonString << std::endl;
-    }
-
+    parseFileHeaderStream(file , header);
     file.close();
 }
 
@@ -222,7 +171,7 @@ std::string Sm4Encrypt::genCustomJsonData(){
 
 //读取加密文件中 用户自定义的json字符串 完成相应业务逻辑
 void Sm4Encrypt::handleCustomJsonData(std::string jsonStr){
-    std::cout << "custom json : " << jsonStr << std::endl;
+    //std::cout << "custom json : " << jsonStr << std::endl;
 }
 
 static uint32_t getFileSize(std::string filepath){
@@ -291,5 +240,108 @@ uint32_t Sm4Encrypt::writeEncryptFileContent(uint8_t *key , std::ifstream &input
     }//end while
 
     return handleBytes;
+}
+
+void Sm4Encrypt::parseFileHeaderStream(std::ifstream &stream,EncryptFileHeadInfo &headInfo){
+    //read magic number 
+    const long magicNumberSize = sizeof(ENCRYPT_MAGIC_VALUE) / sizeof(ENCRYPT_MAGIC_VALUE[0]);
+    uint8_t magicNumberBuf[magicNumberSize];
+    stream.read((char *)magicNumberBuf , magicNumberSize);
+    std::string magicNumber = std::string((char *)magicNumberBuf);
+    headInfo.magicNumber = magicNumber;
+    //std::cout << "magic number : " << magicNumber << std::endl;
+
+    //read version
+    uint32_t version = readUint32FromFile(stream);
+    headInfo.version = version;
+    //std::cout << "version :" << version << std::endl;
+
+    //read head length
+    uint32_t headLen = readUint32FromFile(stream);
+    headInfo.headLength = headLen;
+    //std::cout << "headLen :" << headLen << std::endl;
+
+    //read origin file name length
+    const uint32_t originFileNameLen = readUint32FromFile(stream);
+    //std::cout << "origin file name length :" << originFileNameLen << std::endl;
+
+    // read origin file name content
+    uint8_t originFileNameBuf[originFileNameLen + 1];
+    originFileNameBuf[originFileNameLen]='\0';
+    stream.read((char *)originFileNameBuf , originFileNameLen);
+    std::string originFileName = std::string((const char *)originFileNameBuf);
+    headInfo.originFileName = originFileName;
+    //std::cout << "origin file name :" << originFileName << std::endl;
+
+    //read origin file length
+    uint32_t originFileLength = readUint32FromFile(stream);
+    headInfo.originFileSize = originFileLength;
+    //std::cout << "origin file length :" << originFileLength << std::endl;
+
+    //read custom json string
+    uint32_t customJsonLength = readUint32FromFile(stream);
+    // std::cout << "customJsonLenght : " << customJsonLength << std::endl;
+    if(customJsonLength > 0){
+        uint8_t jsonStr[customJsonLength + 1];
+        jsonStr[customJsonLength] = '\0';
+        stream.read((char *)jsonStr , customJsonLength);
+        std::string jsonString = std::string((const char *)jsonStr);
+        headInfo.customJsonString = jsonString;
+
+        //call back for users
+        handleCustomJsonData(jsonString);
+        //std::cout << jsonString << std::endl;
+    }
+}
+
+int Sm4Encrypt::decryptFile(uint8_t *key , std::string decryptFilePath , 
+        std::string outFilePath){
+    if(key == nullptr)
+        return DECRYPT_ERROR;
+    std::cout << "========== decrypt file ===============" << std::endl;
+    //std::cout << "key " << key << std::endl;
+    uint32_t encryptFileSize = getFileSize(decryptFilePath);
+
+    std::ifstream stream;
+    
+    stream.open(decryptFilePath,  std::ios::binary);
+    //read head info
+    EncryptFileHeadInfo headInfo;
+    parseFileHeaderStream(stream , headInfo);
+
+    std::cout << "origin file name : " << headInfo.originFileName << std::endl;
+    std::cout << "head length : " << headInfo.headLength << std::endl;
+    std::cout << "origin file length : " << headInfo.originFileSize << std::endl;
+    std::cout << "encrypt file size : " << encryptFileSize << std::endl;
+
+    if(outFilePath == ""){
+        outFilePath = headInfo.originFileName;
+    }
+    uint32_t originFileSize = headInfo.originFileSize;
+
+    std::ofstream outFile;
+    outFile.open(outFilePath.c_str() , std::ios::binary);
+
+    writeDecryptFileContent(key , stream , outFile , originFileSize);
+
+    outFile.close();
+    stream.close();
+    return DECRYPT_SUCCESS;
+}
+
+//解密文件流输出
+uint32_t Sm4Encrypt::writeDecryptFileContent(uint8_t *key ,std::ifstream &input , 
+            std::ofstream &output ,uint32_t size){
+    uint32_t handleCount = 0;
+    SM4_KEY sm4Key;
+    SM4_set_key(key , &sm4Key);
+
+    uint8_t inputBuf[BLOCK_SIZE];
+    uint8_t outputBuf[BLOCK_SIZE];
+
+    //SM4_decrypt()
+
+
+    return handleCount;
 }
 
