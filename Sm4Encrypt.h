@@ -159,7 +159,7 @@ private:
         std::ofstream &stream , uint32_t size);//写入加密后的文件 返回加密字节数
 
     uint32_t writeDecryptFileContent(uint8_t *key , std::ifstream &input , std::ofstream &output ,
-        uint32_t size);
+        uint32_t originFileSize , uint32_t lastStreamSize);
 
     uint32_t readUint32FromFile(std::ifstream &file); //read a int from file stream
 };

@@ -38,7 +38,7 @@ int Sm4Encrypt::encryptFile(uint8_t *pkey ,std::string path, std::string encrypt
     inputFile.close();
     outFile.close();
 
-    std::cout << "encrypt file handle cout : " << handleCount << std::endl;
+    std::cout << "encrypt file handle count : " << handleCount << std::endl;
 
     return ENCRYPT_SUCCESS;
 }
@@ -227,6 +227,8 @@ uint32_t Sm4Encrypt::writeEncryptFileContent(uint8_t *key , std::ifstream &input
 
     while(handleBytes <= size){
         uint32_t lastSize = size - handleBytes;//剩余字节数
+        std::cout << "lastSize / size ( " << lastSize << " / " << size << " )" << std::endl;
+
         uint32_t readCount = lastSize > BLOCK_SIZE ? BLOCK_SIZE:BLOCK_SIZE - lastSize;
         inputStream.read((char *)input , readCount);
         if(readCount < BLOCK_SIZE){
@@ -236,7 +238,7 @@ uint32_t Sm4Encrypt::writeEncryptFileContent(uint8_t *key , std::ifstream &input
         }
         SM4_encrypt(input, output, &sm_key);
         outputStream.write((char *)output , BLOCK_SIZE);
-        handleBytes+=BLOCK_SIZE;
+        handleBytes += BLOCK_SIZE;
     }//end while
 
     return handleBytes;
@@ -309,20 +311,23 @@ int Sm4Encrypt::decryptFile(uint8_t *key , std::string decryptFilePath ,
     EncryptFileHeadInfo headInfo;
     parseFileHeaderStream(stream , headInfo);
 
-    std::cout << "origin file name : " << headInfo.originFileName << std::endl;
-    std::cout << "head length : " << headInfo.headLength << std::endl;
-    std::cout << "origin file length : " << headInfo.originFileSize << std::endl;
-    std::cout << "encrypt file size : " << encryptFileSize << std::endl;
+    // std::cout << "origin file name : " << headInfo.originFileName << std::endl;
+    // std::cout << "head length : " << headInfo.headLength << std::endl;
+    // std::cout << "origin file length : " << headInfo.originFileSize << std::endl;
+    // std::cout << "encrypt file size : " << encryptFileSize << std::endl;
 
     if(outFilePath == ""){
         outFilePath = headInfo.originFileName;
     }
     uint32_t originFileSize = headInfo.originFileSize;
 
+    uint32_t lastStreamSize = encryptFileSize - headInfo.headLength;
+    std::cout << "lastStreamSize : " << lastStreamSize << std::endl;
+
     std::ofstream outFile;
     outFile.open(outFilePath.c_str() , std::ios::binary);
 
-    writeDecryptFileContent(key , stream , outFile , originFileSize);
+    writeDecryptFileContent(key , stream , outFile , originFileSize , lastStreamSize);
 
     outFile.close();
     stream.close();
@@ -330,18 +335,31 @@ int Sm4Encrypt::decryptFile(uint8_t *key , std::string decryptFilePath ,
 }
 
 //解密文件流输出
-uint32_t Sm4Encrypt::writeDecryptFileContent(uint8_t *key ,std::ifstream &input , 
-            std::ofstream &output ,uint32_t size){
-    uint32_t handleCount = 0;
+uint32_t Sm4Encrypt::writeDecryptFileContent(uint8_t *key ,std::ifstream &input, 
+            std::ofstream &output ,uint32_t originFileSize , uint32_t lastStreamSize){
+ 
     SM4_KEY sm4Key;
     SM4_set_key(key , &sm4Key);
 
     uint8_t inputBuf[BLOCK_SIZE];
     uint8_t outputBuf[BLOCK_SIZE];
 
-    //SM4_decrypt()
+    uint32_t handleCount = 0;
 
+    while(handleCount <= lastStreamSize){
+        input.read((char *)inputBuf , BLOCK_SIZE);
+        SM4_decrypt(inputBuf , outputBuf , &sm4Key);
+        
+        uint32_t limitOffset = BLOCK_SIZE;
+        if(handleCount + BLOCK_SIZE > originFileSize){
+            limitOffset = handleCount + BLOCK_SIZE - originFileSize;
+        }
+        std::cout << "limitOffset = " << limitOffset << " handleCount = " << handleCount
+            << " originFileSize = " << originFileSize << std::endl;
+        output.write((char *)outputBuf , limitOffset);
 
+        handleCount += BLOCK_SIZE;
+    }//end while
     return handleCount;
 }
 
