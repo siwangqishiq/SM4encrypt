@@ -26,23 +26,27 @@ int main(int argc , char *argv[]){
 //    }
 //    std::cout << std::endl;
     
+    // Sm4Encrypt instance;
+    // instance.encryptFile(key,"res/test.txt","res/en_test");
+
+    // EncryptFileHeadInfo info;
+    // instance.parseFileHeader("res/en_test" , info);
+    // std::cout << "head info :" << std::endl;
+    // std::cout << "magic number :" << info.magicNumber << std::endl;
+    // std::cout << "headLength :" << info.headLength << std::endl;
+    // std::cout << "originFileName :" << info.originFileName << std::endl;
+    // std::cout << "originFileSize :" << info.originFileSize << std::endl;
+    // std::cout << "customJsonString :" << info.customJsonString << std::endl;
+
+    // instance.decryptFile(key , "res/en_test","wode");
+
+
+
+
     Sm4Encrypt instance;
-    instance.encryptFile(key,"res/test.txt","res/en_test");
-    //instance.readEncryptFile("res/en_test");
+    //instance.encryptFile(key,"res/gakki.jpeg","res/en_test.jpeg");
+    instance.decryptFile(key, "en_test.jpeg");
 
-    // bool encrypt = instance.checkFileIsEncrypted("res/en_test");
-    // std::cout << "是否加密 : " << encrypt << std::endl;
-
-    EncryptFileHeadInfo info;
-    instance.parseFileHeader("res/en_test" , info);
-    std::cout << "head info :" << std::endl;
-    std::cout << "magic number :" << info.magicNumber << std::endl;
-    std::cout << "headLength :" << info.headLength << std::endl;
-    std::cout << "originFileName :" << info.originFileName << std::endl;
-    std::cout << "originFileSize :" << info.originFileSize << std::endl;
-    std::cout << "customJsonString :" << info.customJsonString << std::endl;
-
-    instance.decryptFile(key , "res/en_test","wode");
 
     // bool isEncrypt = encrypt.checkFileIsEncrypted("res/gakki.jpeg");
     // std::cout << isEncrypt << std::endl;

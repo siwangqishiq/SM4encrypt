@@ -247,8 +247,9 @@ uint32_t Sm4Encrypt::writeEncryptFileContent(uint8_t *key , std::ifstream &input
 void Sm4Encrypt::parseFileHeaderStream(std::ifstream &stream,EncryptFileHeadInfo &headInfo){
     //read magic number 
     const long magicNumberSize = sizeof(ENCRYPT_MAGIC_VALUE) / sizeof(ENCRYPT_MAGIC_VALUE[0]);
-    uint8_t magicNumberBuf[magicNumberSize];
+    uint8_t magicNumberBuf[magicNumberSize + 1];
     stream.read((char *)magicNumberBuf , magicNumberSize);
+    magicNumberBuf[magicNumberSize]='\0';
     std::string magicNumber = std::string((char *)magicNumberBuf);
     headInfo.magicNumber = magicNumber;
     //std::cout << "magic number : " << magicNumber << std::endl;
@@ -337,7 +338,7 @@ int Sm4Encrypt::decryptFile(uint8_t *key , std::string decryptFilePath ,
 //解密文件流输出
 uint32_t Sm4Encrypt::writeDecryptFileContent(uint8_t *key ,std::ifstream &input, 
             std::ofstream &output ,uint32_t originFileSize , uint32_t lastStreamSize){
- 
+                    
     SM4_KEY sm4Key;
     SM4_set_key(key , &sm4Key);
 
@@ -346,20 +347,25 @@ uint32_t Sm4Encrypt::writeDecryptFileContent(uint8_t *key ,std::ifstream &input,
 
     uint32_t handleCount = 0;
 
-    while(handleCount <= lastStreamSize){
-        input.read((char *)inputBuf , BLOCK_SIZE);
-        SM4_decrypt(inputBuf , outputBuf , &sm4Key);
-        
+    while(handleCount < lastStreamSize){
         uint32_t limitOffset = BLOCK_SIZE;
         if(handleCount + BLOCK_SIZE > originFileSize){
-            limitOffset = handleCount + BLOCK_SIZE - originFileSize;
+            limitOffset = originFileSize - handleCount;
         }
         std::cout << "limitOffset = " << limitOffset << " handleCount = " << handleCount
-            << " originFileSize = " << originFileSize << std::endl;
+            << " originFileSize = " << originFileSize << " lastFileSize = " << lastStreamSize << std::endl;
+
+        input.read((char *)inputBuf , BLOCK_SIZE);
+        SM4_decrypt(inputBuf , outputBuf , &sm4Key);
+  
         output.write((char *)outputBuf , limitOffset);
 
-        handleCount += BLOCK_SIZE;
+        if(limitOffset == 0)
+            break;
+        handleCount += limitOffset;
     }//end while
+
+    std::cout << "handle count : " << handleCount << std::endl;
     return handleCount;
 }
 
